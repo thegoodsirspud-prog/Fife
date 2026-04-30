@@ -1,394 +1,463 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import { fifeShops, categories } from './data/fifeShops';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import maplibregl from 'maplibre-gl';
+import { FIFE_SHOPS, CATEGORIES, TOWNS } from './data/fifeShops.js';
 
-/* ─── Inline SVG icons (sized via CSS) ─── */
-const Icon = ({ d, size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    {d}
-  </svg>
-);
-const IconSearch = (p) => <Icon {...p} d={<><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></>} />;
-const IconPin = (p) => <Icon {...p} d={<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></>} />;
-const IconList = (p) => <Icon {...p} d={<><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.5"/><circle cx="3.5" cy="12" r="1.5"/><circle cx="3.5" cy="18" r="1.5"/></>} />;
-const IconMap = (p) => <Icon {...p} d={<><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></>} />;
-const IconClose = (p) => <Icon {...p} d={<><path d="M18 6 6 18M6 6l12 12"/></>} />;
-const IconPhone = (p) => <Icon {...p} d={<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>} />;
-const IconExt = (p) => <Icon {...p} d={<><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></>} />;
-const IconLocate = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></>} />;
-const IconStar = (p) => <Icon {...p} d={<path d="M12 2 15 9l7 .5-5.5 4.5L18 22l-6-4-6 4 1.5-8L2 9.5 9 9z"/>} />;
+/* ════════════════════════════════════════════════════════════════════════
+   Fife Food — map-first discovery, MW4-quality polish.
+   ════════════════════════════════════════════════════════════════════════ */
 
-/* ─── Category styling ─── */
-const catStyle = (cat) => {
-  const c = (cat || '').toLowerCase();
-  if (c.includes('farm')) return { color: '#3f6212', bg: '#ecfccb', label: 'Farm' };
-  if (c.includes('bak') || c.includes('café') || c.includes('cafe')) return { color: '#9a3412', bg: '#ffedd5', label: 'Bakery' };
-  if (c.includes('fish') || c.includes('seafood')) return { color: '#1e40af', bg: '#dbeafe', label: 'Seafood' };
-  if (c.includes('deli')) return { color: '#9f1239', bg: '#ffe4e6', label: 'Deli' };
-  if (c.includes('distill') || c.includes('gin')) return { color: '#713f12', bg: '#fef3c7', label: 'Distillery' };
-  if (c.includes('brew') || c.includes('taproom')) return { color: '#92400e', bg: '#fef3c7', label: 'Brewery' };
-  if (c.includes('market')) return { color: '#365314', bg: '#d9f99d', label: 'Market' };
-  if (c.includes('cheese') || c.includes('dairy')) return { color: '#854d0e', bg: '#fef9c3', label: 'Cheese' };
-  if (c.includes('chocolat') || c.includes('confect') || c.includes('fudge')) return { color: '#6b21a8', bg: '#f3e8ff', label: 'Sweets' };
-  if (c.includes('hub')) return { color: '#0f766e', bg: '#ccfbf1', label: 'Food Hub' };
-  return { color: '#404040', bg: '#f5f5f5', label: cat };
+const STYLES = {
+  dark:  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
 };
 
-/* ─── Custom Leaflet markers (SVG, no broken images) ─── */
-const makeMarker = (cat, active = false) => {
-  const { color } = catStyle(cat);
-  const size = active ? 44 : 36;
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 36 36">
-      <defs>
-        <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.25"/>
-        </filter>
-      </defs>
-      <circle cx="18" cy="18" r="14" fill="${color}" filter="url(#s)" stroke="white" stroke-width="3"/>
-      <circle cx="18" cy="18" r="5" fill="white"/>
-    </svg>`;
-  return L.divIcon({
-    html: svg,
-    className: 'fife-marker',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -size / 2],
-  });
-};
+const CAT_BY_ID = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
 
-const userMarker = () => L.divIcon({
-  html: `<div class="user-dot"><div class="user-dot-inner"></div></div>`,
-  className: 'user-marker',
-  iconSize: [22, 22],
-  iconAnchor: [11, 11],
+// GeoJSON for all shops, filtered later via map filter
+const buildGeo = (shops) => ({
+  type: 'FeatureCollection',
+  features: shops.map(s => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
+    properties: {
+      id: s.id, name: s.name, cat: s.cat, town: s.town,
+      color: CAT_BY_ID[s.cat]?.color || '#888',
+    },
+  })),
 });
 
-/* ─── Distance helper ─── */
-const distanceKm = (a, b) => {
-  const R = 6371;
-  const toRad = (x) => (x * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+// Distance helper (km)
+const distKm = (a, b) => {
+  const R = 6371, toRad = x => x * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat), dLon = toRad(b.lon - a.lon);
+  const x = Math.sin(dLat/2)**2 + Math.sin(dLon/2)**2 * Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat));
   return 2 * R * Math.asin(Math.sqrt(x));
 };
 
-/* ─── Map controller for fly-to ─── */
-const MapController = ({ center, zoom }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (center) map.flyTo(center, zoom || 13, { duration: 0.8 });
-  }, [center, zoom, map]);
-  return null;
+/* ─── Icons ─── */
+const I = {
+  menu:   <svg viewBox="0 0 20 20" width="18" height="18"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  close:  <svg viewBox="0 0 20 20" width="18" height="18"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  search: <svg viewBox="0 0 20 20" width="16" height="16"><circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" fill="none"/><path d="m18 18-4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  pin:    <svg viewBox="0 0 20 20" width="14" height="14"><path d="M10 2a6 6 0 0 0-6 6c0 5 6 10 6 10s6-5 6-10a6 6 0 0 0-6-6z" stroke="currentColor" strokeWidth="1.6" fill="none"/><circle cx="10" cy="8" r="2.2" fill="currentColor"/></svg>,
+  phone:  <svg viewBox="0 0 20 20" width="14" height="14"><path d="M5 3h3l1.5 4-2 1a10 10 0 0 0 4.5 4.5l1-2 4 1.5v3a2 2 0 0 1-2 2A14 14 0 0 1 3 5a2 2 0 0 1 2-2z" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>,
+  ext:    <svg viewBox="0 0 20 20" width="14" height="14"><path d="M11 3h6v6M17 3l-9 9M14 11v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>,
+  locate: <svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="3" fill="currentColor"/><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.4" opacity="0.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
+  list:   <svg viewBox="0 0 20 20" width="16" height="16"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  map:    <svg viewBox="0 0 20 20" width="16" height="16"><path d="M2 5l5-2 6 2 5-2v12l-5 2-6-2-5 2z M7 3v14M13 5v14" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>,
+  filter: <svg viewBox="0 0 20 20" width="16" height="16"><path d="M3 5h14M5 10h10M8 15h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
 };
 
-/* ─── Town of the day (deterministic) ─── */
-const towns = ['St Andrews', 'Anstruther', 'Crail', 'Pittenweem', 'Elie', 'Cupar', 'Kirkcaldy', 'Dunfermline', 'Newburgh', 'Tayport'];
-const todaysTown = () => {
-  const d = new Date();
-  const day = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
-  return towns[day % towns.length];
-};
-
-/* ─── Main App ─── */
+/* ════════════════════════════════════════════════════════════════════════ */
 export default function App() {
-  const [query, setQuery] = useState('');
-  const [activeCat, setActiveCat] = useState('All');
-  const [userLoc, setUserLoc] = useState(null);
-  const [selectedShop, setSelectedShop] = useState(null);
-  const [mapCenter, setMapCenter] = useState(null);
-  const [view, setView] = useState('list'); // mobile: 'list' | 'map'
-  const [showFilters, setShowFilters] = useState(false);
-  const town = useMemo(todaysTown, []);
+  const cRef = useRef(null);
+  const mapRef = useRef(null);
+  const userMarkerRef = useRef(null);
+  const [ready, setReady] = useState(false);
+  const [theme, setTheme] = useState('dark');
 
-  /* Geolocation */
-  const requestLocation = useCallback(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-        setUserLoc(loc);
-        setMapCenter([loc.lat, loc.lon]);
+  const [activeCats, setActiveCats] = useState(() => new Set(CATEGORIES.map(c => c.id)));
+  const [activeTown, setActiveTown] = useState('all');
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [view, setView] = useState('map'); // 'map' | 'list' (mobile)
+  const [drawer, setDrawer] = useState(false);
+  const [userPos, setUserPos] = useState(null);
+  const [geoErr, setGeoErr] = useState(null);
+
+  /* ── Filtered shops ───────────────────────────────────────────────── */
+  const filteredShops = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return FIFE_SHOPS
+      .filter(s => activeCats.has(s.cat))
+      .filter(s => activeTown === 'all' || s.town === activeTown)
+      .filter(s => !q || (
+        s.name.toLowerCase().includes(q) ||
+        s.town.toLowerCase().includes(q) ||
+        s.desc.toLowerCase().includes(q) ||
+        (s.tags || []).some(t => t.toLowerCase().includes(q))
+      ))
+      .map(s => ({ ...s, distance: userPos ? distKm(userPos, s) : null }))
+      .sort((a, b) => a.distance != null && b.distance != null ? a.distance - b.distance : a.name.localeCompare(b.name));
+  }, [activeCats, activeTown, query, userPos]);
+
+  /* ── Build map layers ─────────────────────────────────────────────── */
+  const buildLayers = useCallback((map, currentTheme) => {
+    const labelColor = currentTheme === 'light' ? '#1e293b' : '#ffffff';
+    const labelHalo  = currentTheme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(10,15,25,0.85)';
+
+    // Tear down
+    ['shop-label','shop-hit','shop-selected','shop-dot','shop-halo'].forEach(id => { try { map.removeLayer(id); } catch {} });
+    try { map.removeSource('shops'); } catch {}
+
+    map.addSource('shops', { type:'geojson', data: buildGeo(FIFE_SHOPS) });
+
+    map.addLayer({ id:'shop-halo', type:'circle', source:'shops', paint:{
+      'circle-radius': ['interpolate',['linear'],['zoom'], 8, 8, 11, 14, 14, 22],
+      'circle-color': ['get','color'],
+      'circle-opacity': 0.18,
+      'circle-blur': 0.6,
+    }});
+
+    map.addLayer({ id:'shop-dot', type:'circle', source:'shops', paint:{
+      'circle-radius': ['interpolate',['linear'],['zoom'], 8, 5, 11, 7, 14, 10],
+      'circle-color': ['get','color'],
+      'circle-stroke-color': currentTheme === 'light' ? '#ffffff' : 'rgba(15,20,30,0.95)',
+      'circle-stroke-width': 2.5,
+    }});
+
+    map.addLayer({ id:'shop-selected', type:'circle', source:'shops',
+      filter: ['==', ['get','id'], ''], paint:{
+      'circle-radius': ['interpolate',['linear'],['zoom'], 8, 11, 11, 14, 14, 18],
+      'circle-color': 'transparent',
+      'circle-stroke-color': currentTheme === 'light' ? '#0f172a' : '#ffffff',
+      'circle-stroke-width': 2.5,
+    }});
+
+    map.addLayer({ id:'shop-hit', type:'circle', source:'shops', paint:{
+      'circle-radius': 22, 'circle-color':'transparent', 'circle-opacity': 0,
+    }});
+
+    map.addLayer({ id:'shop-label', type:'symbol', source:'shops', minzoom: 10,
+      layout: {
+        'text-field': ['get','name'],
+        'text-font': ['Open Sans Semibold','Arial Unicode MS Bold'],
+        'text-size': ['interpolate',['linear'],['zoom'], 10, 10, 13, 12],
+        'text-offset': [0, 1.4],
+        'text-anchor': 'top',
+        'text-allow-overlap': false,
+        'text-optional': true,
       },
-      () => {},
-      { enableHighAccuracy: true, timeout: 8000 }
+      paint: { 'text-color': labelColor, 'text-halo-color': labelHalo, 'text-halo-width': 1.4 },
+    });
+
+    map.on('click','shop-hit', e => {
+      const f = e.features?.[0];
+      if (!f) return;
+      const s = FIFE_SHOPS.find(x => x.id === f.properties.id);
+      if (s) {
+        setSelected(s);
+        map.easeTo({ center:[s.lon,s.lat], zoom: Math.max(12, map.getZoom()), duration: 600 });
+      }
+    });
+    map.on('mouseenter','shop-hit', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave','shop-hit', () => { map.getCanvas().style.cursor = ''; });
+  }, []);
+
+  /* ── Apply filter to map ──────────────────────────────────────────── */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const ids = new Set(filteredShops.map(s => s.id));
+    try {
+      map.setFilter('shop-dot',   ['in', ['get','id'], ['literal', [...ids]]]);
+      map.setFilter('shop-halo',  ['in', ['get','id'], ['literal', [...ids]]]);
+      map.setFilter('shop-label', ['in', ['get','id'], ['literal', [...ids]]]);
+      map.setFilter('shop-hit',   ['in', ['get','id'], ['literal', [...ids]]]);
+    } catch {}
+  }, [filteredShops, ready]);
+
+  /* ── Apply selection ──────────────────────────────────────────────── */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    try { map.setFilter('shop-selected', ['==', ['get','id'], selected?.id || '']); } catch {}
+  }, [selected, ready]);
+
+  /* ── Init map ─────────────────────────────────────────────────────── */
+  useEffect(() => {
+    if (!cRef.current || mapRef.current) return;
+    const map = new maplibregl.Map({
+      container: cRef.current,
+      style: STYLES.dark,
+      center: [-2.95, 56.25],
+      zoom: 9.2,
+      minZoom: 7,
+      maxZoom: 16,
+      attributionControl: { compact: true },
+      pitchWithRotate: false,
+      dragRotate: false,
+    });
+    map.touchZoomRotate.disableRotation();
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+    map.on('load', () => {
+      buildLayers(map, 'dark');
+      setReady(true);
+    });
+
+    mapRef.current = map;
+    return () => { map.remove(); mapRef.current = null; };
+  }, [buildLayers]);
+
+  /* ── Theme toggle ─────────────────────────────────────────────────── */
+  const toggleTheme = useCallback(() => {
+    const map = mapRef.current; if (!map) return;
+    const next = theme === 'dark' ? 'light' : 'dark';
+    const center = map.getCenter(), zoom = map.getZoom();
+    map.setStyle(STYLES[next]);
+    const rebuild = () => { buildLayers(map, next); map.jumpTo({ center, zoom }); };
+    map.once('idle', rebuild);
+    setTimeout(() => { try { if (!map.getSource('shops')) rebuild(); } catch {} }, 1500);
+    setTheme(next);
+  }, [theme, buildLayers]);
+
+  /* ── Geolocation ──────────────────────────────────────────────────── */
+  const requestLoc = useCallback(() => {
+    setGeoErr(null);
+    if (!navigator.geolocation) { setGeoErr('Not supported'); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const p = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        setUserPos(p);
+        mapRef.current?.flyTo({ center:[p.lon, p.lat], zoom: Math.max(11, mapRef.current.getZoom()), duration: 900 });
+      },
+      () => { setGeoErr('Location denied'); setTimeout(() => setGeoErr(null), 3000); },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
     );
   }, []);
 
-  /* Categories present in data */
-  const cats = useMemo(() => {
-    const s = new Set(fifeShops.map((x) => x.category));
-    return ['All', ...Array.from(s)];
-  }, []);
+  /* ── User pos marker ──────────────────────────────────────────────── */
+  useEffect(() => {
+    if (!ready || !mapRef.current || !userPos) return;
+    if (userMarkerRef.current) userMarkerRef.current.remove();
+    const el = document.createElement('div');
+    el.className = 'user-pos';
+    el.innerHTML = '<span class="user-pos-dot"></span><span class="user-pos-pulse"></span>';
+    userMarkerRef.current = new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([userPos.lon, userPos.lat]).addTo(mapRef.current);
+    return () => userMarkerRef.current?.remove();
+  }, [ready, userPos]);
 
-  /* Filtered shops with distance */
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return fifeShops
-      .filter((s) => activeCat === 'All' || s.category === activeCat)
-      .filter((s) => {
-        if (!q) return true;
-        return (
-          s.name.toLowerCase().includes(q) ||
-          (s.town || '').toLowerCase().includes(q) ||
-          (s.description || '').toLowerCase().includes(q) ||
-          (s.produce || []).some((p) => p.toLowerCase().includes(q))
-        );
-      })
-      .map((s) => ({
-        ...s,
-        distance: userLoc ? distanceKm(userLoc, { lat: s.lat, lon: s.lon }) : null,
-      }))
-      .sort((a, b) => {
-        if (a.distance != null && b.distance != null) return a.distance - b.distance;
-        return a.name.localeCompare(b.name);
-      });
-  }, [query, activeCat, userLoc]);
+  /* ── Helpers ──────────────────────────────────────────────────────── */
+  const toggleCat = (id) => {
+    setActiveCats(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n.size === 0 ? new Set([id]) : n;
+    });
+  };
+  const allCatsOn = activeCats.size === CATEGORIES.length;
+  const toggleAllCats = () => {
+    setActiveCats(allCatsOn ? new Set([CATEGORIES[0].id]) : new Set(CATEGORIES.map(c => c.id)));
+  };
+  const resetFilters = () => {
+    setActiveCats(new Set(CATEGORIES.map(c => c.id)));
+    setActiveTown('all');
+    setQuery('');
+  };
 
-  /* Featured shop in town of the day */
-  const featured = useMemo(() => {
-    return fifeShops.find((s) => (s.town || '').toLowerCase() === town.toLowerCase()) || fifeShops[0];
-  }, [town]);
-
-  const handleShopClick = (shop) => {
-    setSelectedShop(shop);
-    setMapCenter([shop.lat, shop.lon]);
+  const focusShop = (s) => {
+    setSelected(s);
     setView('map');
+    setDrawer(false);
+    mapRef.current?.flyTo({ center:[s.lon, s.lat], zoom: 13, duration: 800 });
   };
 
   return (
-    <div className="app">
-      {/* ─── HEADER ─── */}
-      <header className="header">
-        <div className="header-inner">
-          <div className="brand">
-            <div className="brand-mark">
-              <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-                <path d="M16 4 4 12v16h24V12L16 4Z" fill="#fef3c7" stroke="#92400e" strokeWidth="1.5"/>
-                <path d="M11 22h10M11 18h10M16 4v8" stroke="#92400e" strokeWidth="1.5" strokeLinecap="round"/>
-                <circle cx="16" cy="14" r="2" fill="#92400e"/>
-              </svg>
-            </div>
-            <div className="brand-text">
-              <div className="brand-title">Fife Food</div>
-              <div className="brand-sub">Local, honest, nearby</div>
-            </div>
+    <div className={`app theme-${theme}`}>
+      {/* ─── Top Bar ───────────────────────────────────────────── */}
+      <header className="topbar">
+        <button className="topbar-btn" onClick={() => setDrawer(true)} aria-label="Menu">
+          {I.menu}
+        </button>
+        <div className="topbar-brand">
+          <div className="topbar-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <path d="M12 3 L4 9 V20 H20 V9 Z" fill="#fbbf24" stroke="#1a1410" strokeWidth="1.2" strokeLinejoin="round"/>
+              <circle cx="12" cy="13" r="2.2" fill="#1a1410"/>
+            </svg>
           </div>
-          <button className="locate-btn" onClick={requestLocation} aria-label="Find shops near me">
-            <IconLocate size={18} />
-            <span>{userLoc ? 'Located' : 'Near me'}</span>
-          </button>
+          <div className="topbar-title">FIFE FOOD</div>
         </div>
+        <button className={`topbar-btn ${userPos ? 'on' : ''}`} onClick={requestLoc} aria-label="Find me">
+          {I.locate}
+        </button>
       </header>
 
-      {/* ─── HERO ─── */}
-      <section className="hero">
-        <div className="hero-bg" aria-hidden="true">
-          <div className="hero-blob hero-blob-1"></div>
-          <div className="hero-blob hero-blob-2"></div>
-        </div>
-        <div className="hero-inner">
-          <div className="hero-eyebrow">
-            <IconStar size={14} /> Town of the day · <strong>{town}</strong>
-          </div>
-          <h1 className="hero-title">
-            The Kingdom's <em>finest</em> larder,<br/>mapped.
-          </h1>
-          <p className="hero-lede">
-            Discover {fifeShops.length} independent producers, bakers, fishmongers, distillers and farm shops across Fife — no chains, no supermarkets, just the real thing.
-          </p>
-          <div className="hero-stats">
-            <div className="stat"><div className="stat-num">{fifeShops.length}</div><div className="stat-lbl">Producers</div></div>
-            <div className="stat-divider"></div>
-            <div className="stat"><div className="stat-num">{cats.length - 1}</div><div className="stat-lbl">Categories</div></div>
-            <div className="stat-divider"></div>
-            <div className="stat"><div className="stat-num">100%</div><div className="stat-lbl">Independent</div></div>
-          </div>
-        </div>
-      </section>
+      {/* ─── Map (always mounted, full bleed) ────────────────── */}
+      <div className={`map-wrap ${view === 'map' ? 'show' : ''}`}>
+        <div ref={cRef} className="map-canvas"></div>
 
-      {/* ─── SEARCH BAR ─── */}
-      <div className="search-bar">
-        <div className="search-bar-inner">
-          <div className="search-input">
-            <IconSearch size={18} />
+        {/* Map overlay: search */}
+        <div className="map-search">
+          <div className="map-search-box">
+            <span className="map-search-icon">{I.search}</span>
             <input
-              type="text"
-              placeholder="Search producers, towns, produce…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              type="text" value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={`Search ${FIFE_SHOPS.length} producers, towns…`}
             />
-            {query && (
-              <button className="search-clear" onClick={() => setQuery('')} aria-label="Clear">
-                <IconClose size={16} />
-              </button>
-            )}
+            {query && <button className="map-search-clear" onClick={() => setQuery('')} aria-label="Clear">{I.close}</button>}
+          </div>
+          <div className="map-search-meta">
+            <span className="meta-count">{filteredShops.length}</span>
+            <span className="meta-label">{filteredShops.length === 1 ? 'place' : 'places'}</span>
+            {activeTown !== 'all' && <span className="meta-pill">{activeTown}</span>}
           </div>
         </div>
 
-        {/* Category chips */}
-        <div className="chips">
-          {cats.map((c) => (
+        {/* Legend */}
+        <div className="map-legend">
+          {CATEGORIES.map(c => (
             <button
-              key={c}
-              className={`chip ${activeCat === c ? 'chip-active' : ''}`}
-              onClick={() => setActiveCat(c)}
+              key={c.id}
+              className={`legend-chip ${activeCats.has(c.id) ? 'on' : ''}`}
+              onClick={() => toggleCat(c.id)}
+              style={{ '--c': c.color }}
             >
-              {c === 'All' ? 'All' : catStyle(c).label}
+              <span className="legend-dot"></span>
+              <span className="legend-label">{c.label}</span>
             </button>
+          ))}
+        </div>
+
+        {/* Theme toggle */}
+        <button className="map-theme-btn" onClick={toggleTheme} aria-label="Toggle theme">
+          {theme === 'dark'
+            ? <svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="3.5" fill="currentColor"/>{[0,45,90,135,180,225,270,315].map(a=>{const r=a*Math.PI/180;return<line key={a} x1={10+Math.cos(r)*5.5} y1={10+Math.sin(r)*5.5} x2={10+Math.cos(r)*7} y2={10+Math.sin(r)*7} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>})}</svg>
+            : <svg viewBox="0 0 20 20" width="16" height="16"><path d="M10 3a7 7 0 1 0 0 14 5 5 0 0 1 0-14z" fill="currentColor"/></svg>}
+        </button>
+
+        {geoErr && <div className="map-toast">{geoErr}</div>}
+
+        {/* Selected shop card */}
+        {selected && (
+          <div className="shop-popup" role="dialog">
+            <div className="shop-popup-bar" style={{ background: CAT_BY_ID[selected.cat]?.color }}></div>
+            <div className="shop-popup-head">
+              <div>
+                <div className="shop-popup-eyebrow" style={{ color: CAT_BY_ID[selected.cat]?.color }}>
+                  {CAT_BY_ID[selected.cat]?.label} · {selected.town}
+                </div>
+                <div className="shop-popup-name">{selected.name}</div>
+              </div>
+              <button className="shop-popup-close" onClick={() => setSelected(null)} aria-label="Close">{I.close}</button>
+            </div>
+            <p className="shop-popup-desc">{selected.desc}</p>
+            {selected.tags && (
+              <div className="shop-popup-tags">
+                {selected.tags.map(t => <span key={t} className="tag">{t}</span>)}
+              </div>
+            )}
+            <div className="shop-popup-actions">
+              {selected.tel && (
+                <a className="shop-popup-action" href={`tel:${selected.tel}`}>{I.phone}<span>{selected.tel}</span></a>
+              )}
+              {selected.web && (
+                <a className="shop-popup-action" href={selected.web} target="_blank" rel="noopener noreferrer">{I.ext}<span>Visit website</span></a>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── List (mobile) ──────────────────────────────────── */}
+      <div className={`list-wrap ${view === 'list' ? 'show' : ''}`}>
+        <div className="list-header">
+          <h2>{filteredShops.length} {filteredShops.length === 1 ? 'producer' : 'producers'}</h2>
+          {userPos && <span className="list-sub">Sorted by distance</span>}
+        </div>
+        <div className="list">
+          {filteredShops.length === 0 ? (
+            <div className="empty">
+              <p>No producers match these filters.</p>
+              <button className="empty-reset" onClick={resetFilters}>Reset</button>
+            </div>
+          ) : filteredShops.map(s => (
+            <article key={s.id} className="row" onClick={() => focusShop(s)}>
+              <span className="row-dot" style={{ background: CAT_BY_ID[s.cat]?.color }}></span>
+              <div className="row-body">
+                <div className="row-head">
+                  <h3 className="row-name">{s.name}</h3>
+                  {s.distance != null && <span className="row-dist">{s.distance.toFixed(1)} km</span>}
+                </div>
+                <div className="row-meta">
+                  <span style={{ color: CAT_BY_ID[s.cat]?.color, fontWeight: 600 }}>{CAT_BY_ID[s.cat]?.label}</span>
+                  <span className="row-sep">·</span>
+                  <span>{s.town}</span>
+                </div>
+                <p className="row-desc">{s.desc}</p>
+              </div>
+            </article>
           ))}
         </div>
       </div>
 
-      {/* ─── MOBILE TAB SWITCHER ─── */}
-      <div className="view-switch">
-        <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>
-          <IconList size={16} /> List <span className="count">{filtered.length}</span>
-        </button>
-        <button className={view === 'map' ? 'active' : ''} onClick={() => setView('map')}>
-          <IconMap size={16} /> Map
-        </button>
-      </div>
+      {/* ─── Mobile view switch (bottom tab bar) ────────────── */}
+      <nav className="tab-bar">
+        <button className={view === 'map' ? 'on' : ''} onClick={() => setView('map')}>{I.map}<span>Map</span></button>
+        <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>{I.list}<span>List</span><em>{filteredShops.length}</em></button>
+      </nav>
 
-      {/* ─── MAIN CONTENT ─── */}
-      <main className="main">
-        {/* LIST */}
-        <section className={`list-pane ${view === 'list' ? 'visible' : ''}`}>
-          <div className="list-header">
-            <h2 className="list-title">
-              {filtered.length} {filtered.length === 1 ? 'producer' : 'producers'}
-              {activeCat !== 'All' && <span className="list-title-sub"> · {catStyle(activeCat).label}</span>}
-            </h2>
-            {userLoc && <span className="list-sub">Sorted by distance</span>}
+      {/* ─── Drawer Menu ─────────────────────────────────────── */}
+      {drawer && <div className="drawer-overlay" onClick={() => setDrawer(false)}></div>}
+      <aside className={`drawer ${drawer ? 'open' : ''}`}>
+        <div className="drawer-head">
+          <div className="drawer-title">Filters</div>
+          <button className="drawer-close" onClick={() => setDrawer(false)} aria-label="Close">{I.close}</button>
+        </div>
+
+        <div className="drawer-section">
+          <div className="drawer-section-head">
+            <span className="drawer-section-title">Categories</span>
+            <button className="drawer-link" onClick={toggleAllCats}>{allCatsOn ? 'Clear' : 'All'}</button>
           </div>
-
-          {/* Featured card */}
-          {featured && activeCat === 'All' && !query && (
-            <article className="featured" onClick={() => handleShopClick(featured)}>
-              <div className="featured-tag">
-                <IconStar size={12} /> Featured · {town}
-              </div>
-              <h3 className="featured-name">{featured.name}</h3>
-              <p className="featured-desc">{featured.description}</p>
-              <div className="featured-meta">
-                <span className="featured-cat" style={{ background: catStyle(featured.category).bg, color: catStyle(featured.category).color }}>
-                  {catStyle(featured.category).label}
-                </span>
-                <span className="featured-town"><IconPin size={12} /> {featured.town}</span>
-              </div>
-            </article>
-          )}
-
-          <div className="list">
-            {filtered.length === 0 ? (
-              <div className="empty">
-                <p>No producers match your search.</p>
-                <button className="empty-btn" onClick={() => { setQuery(''); setActiveCat('All'); }}>
-                  Reset filters
+          <div className="drawer-cats">
+            {CATEGORIES.map(c => {
+              const count = FIFE_SHOPS.filter(s => s.cat === c.id).length;
+              const on = activeCats.has(c.id);
+              return (
+                <button
+                  key={c.id}
+                  className={`drawer-cat ${on ? 'on' : ''}`}
+                  onClick={() => toggleCat(c.id)}
+                  style={{ '--c': c.color }}
+                >
+                  <span className="drawer-cat-dot"></span>
+                  <span className="drawer-cat-label">{c.label}</span>
+                  <span className="drawer-cat-count">{count}</span>
                 </button>
-              </div>
-            ) : (
-              filtered.map((shop) => {
-                const style = catStyle(shop.category);
-                return (
-                  <article
-                    key={shop.id}
-                    className={`card ${selectedShop?.id === shop.id ? 'card-active' : ''}`}
-                    onClick={() => handleShopClick(shop)}
-                  >
-                    <div className="card-head">
-                      <div className="card-cat" style={{ background: style.bg, color: style.color }}>
-                        {style.label}
-                      </div>
-                      {shop.distance != null && (
-                        <div className="card-distance">{shop.distance.toFixed(1)} km</div>
-                      )}
-                    </div>
-                    <h3 className="card-name">{shop.name}</h3>
-                    <div className="card-town"><IconPin size={12} /> {shop.town}</div>
-                    <p className="card-desc">{shop.description}</p>
-                    {(shop.produce || []).length > 0 && (
-                      <div className="tags">
-                        {(shop.produce || []).slice(0, 4).map((p) => (
-                          <span key={p} className="tag">{p}</span>
-                        ))}
-                      </div>
-                    )}
-                    <div className="card-actions">
-                      {shop.phone && (
-                        <a href={`tel:${shop.phone}`} className="card-link" onClick={(e) => e.stopPropagation()}>
-                          <IconPhone size={14} /> {shop.phone}
-                        </a>
-                      )}
-                      {shop.website && (
-                        <a href={shop.website} target="_blank" rel="noopener noreferrer" className="card-link" onClick={(e) => e.stopPropagation()}>
-                          <IconExt size={14} /> Website
-                        </a>
-                      )}
-                    </div>
-                  </article>
-                );
-              })
-            )}
+              );
+            })}
           </div>
+        </div>
 
-          <footer className="foot">
-            <p>Made with care in Fife · Data from local listings & directories</p>
-          </footer>
-        </section>
+        <div className="drawer-section">
+          <div className="drawer-section-head">
+            <span className="drawer-section-title">Town</span>
+            {activeTown !== 'all' && <button className="drawer-link" onClick={() => setActiveTown('all')}>Clear</button>}
+          </div>
+          <div className="drawer-towns">
+            <button
+              className={`drawer-town ${activeTown === 'all' ? 'on' : ''}`}
+              onClick={() => setActiveTown('all')}
+            >All Fife</button>
+            {TOWNS.map(t => {
+              const count = FIFE_SHOPS.filter(s => s.town === t).length;
+              if (!count) return null;
+              return (
+                <button
+                  key={t}
+                  className={`drawer-town ${activeTown === t ? 'on' : ''}`}
+                  onClick={() => setActiveTown(t)}
+                >
+                  {t} <em>{count}</em>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        {/* MAP */}
-        <section className={`map-pane ${view === 'map' ? 'visible' : ''}`}>
-          <MapContainer
-            center={[56.25, -2.95]}
-            zoom={10}
-            scrollWheelZoom
-            className="leaflet-root"
-            zoomControl={false}
-          >
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap'
-              subdomains="abcd"
-              maxZoom={19}
-            />
-            <MapController center={mapCenter} zoom={selectedShop ? 14 : 11} />
-            {userLoc && (
-              <Marker position={[userLoc.lat, userLoc.lon]} icon={userMarker()}>
-                <Popup><strong>You are here</strong></Popup>
-              </Marker>
-            )}
-            {filtered.map((shop) => (
-              <Marker
-                key={shop.id}
-                position={[shop.lat, shop.lon]}
-                icon={makeMarker(shop.category, selectedShop?.id === shop.id)}
-                eventHandlers={{ click: () => setSelectedShop(shop) }}
-              >
-                <Popup>
-                  <div className="popup">
-                    <div className="popup-cat" style={{ background: catStyle(shop.category).bg, color: catStyle(shop.category).color }}>
-                      {catStyle(shop.category).label}
-                    </div>
-                    <h4>{shop.name}</h4>
-                    <p className="popup-town"><IconPin size={11} /> {shop.town}</p>
-                    <p className="popup-desc">{shop.description}</p>
-                    {shop.website && (
-                      <a href={shop.website} target="_blank" rel="noopener noreferrer" className="popup-link">
-                        Visit website <IconExt size={11} />
-                      </a>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        </section>
-      </main>
+        <div className="drawer-section">
+          <button className="drawer-action" onClick={resetFilters}>Reset all filters</button>
+        </div>
+
+        <div className="drawer-foot">
+          <div className="drawer-foot-title">Fife Food</div>
+          <div className="drawer-foot-sub">{FIFE_SHOPS.length} independent producers across the Kingdom of Fife. No chains, no supermarkets.</div>
+        </div>
+      </aside>
     </div>
   );
 }
