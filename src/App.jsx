@@ -36,16 +36,35 @@ const distKm = (a, b) => {
 
 /* ─── Icons ─── */
 const I = {
-  menu:   <svg viewBox="0 0 20 20" width="18" height="18"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  menu:   <svg viewBox="0 0 20 20" width="20" height="20"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
   close:  <svg viewBox="0 0 20 20" width="18" height="18"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
   search: <svg viewBox="0 0 20 20" width="16" height="16"><circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" fill="none"/><path d="m18 18-4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
   pin:    <svg viewBox="0 0 20 20" width="14" height="14"><path d="M10 2a6 6 0 0 0-6 6c0 5 6 10 6 10s6-5 6-10a6 6 0 0 0-6-6z" stroke="currentColor" strokeWidth="1.6" fill="none"/><circle cx="10" cy="8" r="2.2" fill="currentColor"/></svg>,
   phone:  <svg viewBox="0 0 20 20" width="14" height="14"><path d="M5 3h3l1.5 4-2 1a10 10 0 0 0 4.5 4.5l1-2 4 1.5v3a2 2 0 0 1-2 2A14 14 0 0 1 3 5a2 2 0 0 1 2-2z" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>,
   ext:    <svg viewBox="0 0 20 20" width="14" height="14"><path d="M11 3h6v6M17 3l-9 9M14 11v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>,
-  locate: <svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="3" fill="currentColor"/><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.4" opacity="0.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
+  locate: <svg viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="10" r="3" fill="currentColor"/><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.4" opacity="0.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   list:   <svg viewBox="0 0 20 20" width="16" height="16"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
   map:    <svg viewBox="0 0 20 20" width="16" height="16"><path d="M2 5l5-2 6 2 5-2v12l-5 2-6-2-5 2z M7 3v14M13 5v14" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>,
-  filter: <svg viewBox="0 0 20 20" width="16" height="16"><path d="M3 5h14M5 10h10M8 15h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  star:   <svg viewBox="0 0 20 20" width="12" height="12"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9z" fill="currentColor"/></svg>,
+};
+
+/* Rating row component */
+const RatingRow = ({ rating, source, color }) => {
+  if (!rating) return null;
+  const full = Math.round(rating);
+  return (
+    <div className="rating-row">
+      <span className="rating-source" style={{ color }}>{source}</span>
+      <span className="rating-stars">
+        {[1,2,3,4,5].map(i => (
+          <span key={i} className={`rating-star ${i <= full ? 'on' : ''}`}>
+            <svg viewBox="0 0 20 20" width="12" height="12"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9z" fill="currentColor"/></svg>
+          </span>
+        ))}
+      </span>
+      <span className="rating-num">{rating.toFixed(1)}</span>
+    </div>
+  );
 };
 
 /* ════════════════════════════════════════════════════════════════════════ */
@@ -254,14 +273,9 @@ export default function App() {
         <button className="topbar-btn" onClick={() => setDrawer(true)} aria-label="Menu">
           {I.menu}
         </button>
-        <div className="topbar-brand">
-          <div className="topbar-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22">
-              <path d="M12 3 L4 9 V20 H20 V9 Z" fill="#fbbf24" stroke="#1a1410" strokeWidth="1.2" strokeLinejoin="round"/>
-              <circle cx="12" cy="13" r="2.2" fill="#1a1410"/>
-            </svg>
-          </div>
-          <div className="topbar-title">FIFE FOOD</div>
+        <div className="topbar-title">
+          <span>FIFE</span>
+          <span className="topbar-title-accent">FOOD</span>
         </div>
         <button className={`topbar-btn ${userPos ? 'on' : ''}`} onClick={requestLoc} aria-label="Find me">
           {I.locate}
@@ -315,13 +329,6 @@ export default function App() {
           })}
         </div>
 
-        {/* Theme toggle */}
-        <button className="map-theme-btn" onClick={toggleTheme} aria-label="Toggle theme">
-          {theme === 'dark'
-            ? <svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="3.5" fill="currentColor"/>{[0,45,90,135,180,225,270,315].map(a=>{const r=a*Math.PI/180;return<line key={a} x1={10+Math.cos(r)*5.5} y1={10+Math.sin(r)*5.5} x2={10+Math.cos(r)*7} y2={10+Math.sin(r)*7} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>})}</svg>
-            : <svg viewBox="0 0 20 20" width="16" height="16"><path d="M10 3a7 7 0 1 0 0 14 5 5 0 0 1 0-14z" fill="currentColor"/></svg>}
-        </button>
-
         {geoErr && <div className="map-toast">{geoErr}</div>}
 
         {/* Selected shop card */}
@@ -338,6 +345,12 @@ export default function App() {
               <button className="shop-popup-close" onClick={() => setSelected(null)} aria-label="Close">{I.close}</button>
             </div>
             <p className="shop-popup-desc">{selected.desc}</p>
+            {(selected.gr || selected.ta) && (
+              <div className="shop-popup-ratings">
+                <RatingRow rating={selected.gr} source="Google" color="#4285F4" />
+                <RatingRow rating={selected.ta} source="TripAdvisor" color="#00aa6c" />
+              </div>
+            )}
             {selected.tags && (
               <div className="shop-popup-tags">
                 {selected.tags.map(t => <span key={t} className="tag">{t}</span>)}
@@ -381,6 +394,17 @@ export default function App() {
                   <span>{s.town}</span>
                 </div>
                 <p className="row-desc">{s.desc}</p>
+                {s.gr && (
+                  <div className="row-rating">
+                    <span className="row-rating-stars">{I.star} <em>{s.gr.toFixed(1)}</em></span>
+                    <span className="row-rating-src">Google</span>
+                    {s.ta && <>
+                      <span className="row-rating-sep">·</span>
+                      <span className="row-rating-stars ta">{I.star} <em>{s.ta.toFixed(1)}</em></span>
+                      <span className="row-rating-src">TripAdvisor</span>
+                    </>}
+                  </div>
+                )}
               </div>
             </article>
           ))}
@@ -463,6 +487,9 @@ export default function App() {
 
         <div className="drawer-section">
           <button className="drawer-action" onClick={resetFilters}>Reset all filters</button>
+          <button className="drawer-action drawer-action-secondary" onClick={toggleTheme}>
+            {theme === 'dark' ? 'Switch to light map' : 'Switch to dark map'}
+          </button>
         </div>
 
         <div className="drawer-foot">
