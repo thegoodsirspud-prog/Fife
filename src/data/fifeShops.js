@@ -1,26 +1,34 @@
-// Fife Food — verified local producers (no chains, no supermarkets)
-// Categories normalized to 8 clean buckets.
+// Fife Food — verified independent producers, cafes, shops & makers.
+// No chains, no supermarkets.
 
 export const CATEGORIES = [
   { id: 'farm',       label: 'Farm Shops',  color: '#65a30d' },
+  { id: 'cafe',       label: 'Cafés',       color: '#e11d48' },
   { id: 'bakery',     label: 'Bakeries',    color: '#d97706' },
   { id: 'seafood',    label: 'Seafood',     color: '#0284c7' },
   { id: 'deli',       label: 'Delis',       color: '#dc2626' },
   { id: 'distillery', label: 'Distilleries',color: '#a16207' },
   { id: 'brewery',    label: 'Breweries',   color: '#ea580c' },
   { id: 'market',     label: 'Markets',     color: '#16a34a' },
+  { id: 'butcher',    label: 'Butchers',    color: '#9f1239' },
   { id: 'producer',   label: 'Producers',   color: '#7c3aed' },
 ];
 
 export const TOWNS = [
-  'Anstruther', 'Crail', 'Cupar', 'Dunfermline', 'Elie',
-  'Glenrothes', 'Guardbridge', 'Kingsbarns', 'Kirkcaldy', 'Leven',
-  'Lower Largo', 'Newburgh', 'Pittenweem', 'St Andrews', 'St Monans',
-  'Tayport',
+  'Aberdour', 'Anstruther', 'Auchtermuchty', 'Crail', 'Cupar',
+  'Dunfermline', 'Elie', 'Falkland', 'Glenrothes', 'Guardbridge',
+  'Kingsbarns', 'Kirkcaldy', 'Leven', 'Lower Largo', 'Newburgh',
+  'Newport-on-Tay', 'Pittenweem', 'St Andrews', 'St Monans', 'Tayport',
 ];
 
 export const FIFE_SHOPS = [
   // ── Farm Shops ─────────────────────────────────────────────────────
+  { id:'pillars-hercules', name:'Pillars of Hercules',              cat:'farm',       town:'Falkland',     lat:56.2548, lon:-3.2310,
+    desc:'Organic farm shop, market garden & vegetarian café since 1983. Veg boxes, refillery, bothy & camping. Soil Association certified.',
+    tags:['organic','veg','vegan','refillery','café'], web:'https://pillars.co.uk', tel:'01337 857749' },
+  { id:'balgove',        name:'Balgove Larder',                    cat:'farm',       town:'St Andrews',   lat:56.3514, lon:-2.8210,
+    desc:'Foodie emporium with farm shop, butchery, café, Steak Barn, flower shed & summer night markets just outside St Andrews.',
+    tags:['butchery','café','steak-barn','flowers'], web:'https://www.balgove.com', tel:'01334 898145' },
   { id:'ardross',        name:'Ardross Farm Shop',                 cat:'farm',       town:'Elie',         lat:56.1899, lon:-2.7969,
     desc:'Award-winning farm shop. Pasture-for-life beef, home-grown veg, deli, pies, preserves. Pizza nights.',
     tags:['beef','veg','deli','pies'], web:'https://www.ardrossfarmshop.co.uk', tel:'01333 330668' },
@@ -28,8 +36,40 @@ export const FIFE_SHOPS = [
     desc:'Cooperative organic farm growing seasonal veg supplied to top East Neuk restaurants and shops.',
     tags:['organic','veg'], web:'https://eastneukmarketgarden.ooooby.org/' },
   { id:'blacketyside',   name:'Blacketyside Farm Shop & Café',     cat:'farm',       town:'Leven',        lat:56.2050, lon:-2.9850,
-    desc:'Family-run farm shop and café with indoor & outdoor seating. Local seasonal produce, farm meats.',
-    tags:['veg','meat','café'], tel:'01333 423203' },
+    desc:'Family-run farm shop and café with indoor & outdoor seating. Local seasonal produce, farm meats, soft fruits.',
+    tags:['veg','meat','café','fruit'], tel:'01333 423203' },
+  { id:'cairnie-fruit',  name:'Cairnie Fruit Farm',                cat:'farm',       town:'Cupar',        lat:56.3503, lon:-3.0470,
+    desc:'Pick-your-own fruit farm with maize maze, café, and farm shop. Strawberries, raspberries, pumpkins.',
+    tags:['pyo','fruit','café','family'], web:'https://www.cairniefruitfarm.co.uk', tel:'01334 655610' },
+
+  // ── Cafés (independents) ──────────────────────────────────────────
+  { id:'cocoa-tree',     name:'The Cocoa Tree Café',               cat:'cafe',       town:'Pittenweem',   lat:56.2122, lon:-2.7385,
+    desc:'Sister café to Pittenweem Chocolate Co. Cakes, light meals, hot chocolates and handmade chocolates.',
+    tags:['chocolate','café','cakes'], web:'https://pittenweemchocolate.co.uk' },
+  { id:'tannochbrae',    name:'Tannochbrae Tearoom',               cat:'cafe',       town:'Auchtermuchty',lat:56.2917, lon:-3.2389,
+    desc:'Charming traditional tearoom on the High Street. Home-baking, soups, lunches in a quaint setting.',
+    tags:['tearoom','baking','lunch'], tel:'01337 827447' },
+  { id:'hayloft',        name:'Hayloft Tearoom',                   cat:'cafe',       town:'Falkland',     lat:56.2536, lon:-3.2050,
+    desc:'Tearoom on Back Wynd in the heart of historic Falkland. Home-baking and light lunches.',
+    tags:['tearoom','baking'], tel:'01337 857590' },
+  { id:'taste',          name:'Taste',                             cat:'cafe',       town:'St Andrews',   lat:56.3409, lon:-2.7958,
+    desc:'Long-running independent café on North Street. Coffee, sandwiches, cakes — a St Andrews institution.',
+    tags:['coffee','sandwiches'], tel:'01334 477959' },
+  { id:'rendezvous',     name:'Le Rendez-Vous',                    cat:'cafe',       town:'St Andrews',   lat:56.3398, lon:-2.7945,
+    desc:'French-style café on Market Street. Crêpes, coffee, freshly made baguettes and pastries.',
+    tags:['french','crêpes','coffee'], tel:'01334 461020' },
+  { id:'coast-coffee',   name:'Coast Coffee',                      cat:'cafe',       town:'Anstruther',   lat:56.2222, lon:-2.6989,
+    desc:'Harbourside café on Shore Street. Quality coffee, brunch and bakes overlooking the boats.',
+    tags:['coffee','brunch','harbour'], tel:'01333 311411' },
+  { id:'clocktower',     name:'Clock Tower Café',                  cat:'cafe',       town:'Pittenweem',   lat:56.2125, lon:-2.7395,
+    desc:'Cute independent café on Pittenweem High Street. Local products, breakfasts and lovely interior.',
+    tags:['breakfast','local','independent'] },
+  { id:'starr',          name:"Starr's",                           cat:'cafe',       town:'Newport-on-Tay',lat:56.4422, lon:-2.9389,
+    desc:'Independent High Street café in Newport-on-Tay. Friendly local spot with quality coffee and home-cooked food.',
+    tags:['coffee','breakfast','local'], tel:'01382 540066' },
+  { id:'cupar-tearoom',  name:'The Cupar Tearoom',                 cat:'cafe',       town:'Cupar',        lat:56.3197, lon:-3.0094,
+    desc:'Beloved tearoom in Ferguson Square. Homemade scones, pancakes, fine china teacups. GF options.',
+    tags:['tearoom','scones','pancakes','gf'] },
 
   // ── Bakeries ───────────────────────────────────────────────────────
   { id:'baern',          name:'Baern Café & Bakery',               cat:'bakery',     town:'St Monans',    lat:56.2105, lon:-2.7595,
@@ -47,6 +87,9 @@ export const FIFE_SHOPS = [
   { id:'gh-barnett',     name:'G.H. Barnett & Son',                cat:'bakery',     town:'Glenrothes',   lat:56.1942, lon:-3.1759,
     desc:'Family bakery with multiple Fife branches. Traditional Scottish baking supplying local businesses.',
     tags:['bread','pies'] },
+  { id:'bonnie-wee-cake',name:'A Bonnie Wee Cake',                 cat:'bakery',     town:'Cupar',        lat:56.3192, lon:-3.0095,
+    desc:'Bespoke cake-maker for weddings, birthdays and celebrations. Christmas cakes a speciality.',
+    tags:['cakes','wedding','celebration'] },
 
   // ── Seafood ────────────────────────────────────────────────────────
   { id:'reilly',         name:'Reilly Shellfish',                  cat:'seafood',    town:'Crail',        lat:56.2589, lon:-2.6280,
@@ -58,6 +101,9 @@ export const FIFE_SHOPS = [
   { id:'east-pier',      name:'East Pier Smokehouse',              cat:'seafood',    town:'St Monans',    lat:56.2068, lon:-2.7616,
     desc:'Harbourside smokehouse and seafood bistro. Smoked fish to take home or eat in with sea views.',
     tags:['smoked-fish','bistro'], web:'https://www.eastpier.co.uk', tel:'01333 405030' },
+  { id:'anstruther-fish',name:'Anstruther Fish Bar',               cat:'seafood',    town:'Anstruther',   lat:56.2225, lon:-2.7000,
+    desc:"Multi-award-winning fish & chip shop on Anstruther's harbourfront. The chippy of legend.",
+    tags:['fish-chips','takeaway'], web:'https://www.anstrutherfishbar.co.uk', tel:'01333 310518' },
 
   // ── Delis ──────────────────────────────────────────────────────────
   { id:'rocca',          name:'Rocca Italian Deli',                cat:'deli',       town:'St Andrews',   lat:56.3398, lon:-2.7967,
@@ -69,6 +115,9 @@ export const FIFE_SHOPS = [
   { id:'luvians',        name:'Luvians Bottle Shop',               cat:'deli',       town:'Cupar',        lat:56.3199, lon:-3.0103,
     desc:'Legendary Fife wine and whisky merchant. Vast malt selection plus craft beer and gin.',
     tags:['whisky','wine','beer'], web:'https://luvians.com', tel:'01334 654820' },
+  { id:'elie-deli',      name:'Elie Deli',                         cat:'deli',       town:'Elie',         lat:56.1880, lon:-2.8167,
+    desc:'Friendly family-run delicatessen and licensed grocers in seaside Elie. Local produce, fine foods.',
+    tags:['local','grocers','deli'] },
 
   // ── Distilleries ──────────────────────────────────────────────────
   { id:'lindores',       name:'Lindores Abbey Distillery',         cat:'distillery', town:'Newburgh',     lat:56.3461, lon:-3.2369,
@@ -89,9 +138,9 @@ export const FIFE_SHOPS = [
   { id:'lundin',         name:'Lundin Distilling',                 cat:'distillery', town:'Lower Largo',  lat:56.2186, lon:-2.9484,
     desc:'Award-winning craft gin made with gorse blossom and Scottish raspberries.',
     tags:['gin'], web:'https://lundindistilling.com' },
-  { id:'kingdom-spirits', name:'Kingdom of Fife Whisky',           cat:'distillery', town:'Cupar',        lat:56.3198, lon:-3.0098,
-    desc:'Independent Fife whisky bottler showcasing the kingdom\'s distilling heritage.',
-    tags:['whisky'] },
+  { id:'ogilvy-vodka',   name:'Ogilvy Spirits',                    cat:'distillery', town:'Newburgh',     lat:56.3500, lon:-3.2400,
+    desc:'Family-run distillery making award-winning vodka from potatoes grown on the Ogilvy Family Farm.',
+    tags:['vodka'], web:'https://ogilvyspirits.com' },
 
   // ── Breweries ─────────────────────────────────────────────────────
   { id:'futtle',         name:'Futtle Organic Brewery & Taproom',  cat:'brewery',    town:'St Monans',    lat:56.2078, lon:-2.7625,
@@ -100,6 +149,9 @@ export const FIFE_SHOPS = [
   { id:'st-andrews-brewing', name:'St Andrews Brewing Co.',        cat:'brewery',    town:'St Andrews',   lat:56.3409, lon:-2.7935,
     desc:'Independent brewery and taphouse in the home of golf. Range of cask and craft keg.',
     tags:['beer','taproom'], web:'https://standrewsbrewingcompany.com', tel:'01334 473423' },
+  { id:'ovenstone-109',  name:'Ovenstone 109',                     cat:'brewery',    town:'Anstruther',   lat:56.2289, lon:-2.7150,
+    desc:'East Neuk craft brewery making characterful ales, lagers and seasonal specials.',
+    tags:['beer','craft'] },
 
   // ── Markets ───────────────────────────────────────────────────────
   { id:'bowhouse',       name:'Bowhouse Food & Drink Hub',         cat:'market',     town:'St Monans',    lat:56.2080, lon:-2.7610,
@@ -112,17 +164,31 @@ export const FIFE_SHOPS = [
     desc:'Monthly market with independent producers, makers and street food on South Street.',
     tags:['market','street-food'] },
 
-  // ── Producers (cheese / chocolate / artisan) ─────────────────────
+  // ── Butchers ──────────────────────────────────────────────────────
+  { id:'puddledub',      name:'Puddledub Pork',                    cat:'butcher',    town:'Kirkcaldy',    lat:56.1135, lon:-3.1612,
+    desc:"Mitchell family butchers on the High Street. Own-reared Puddledub pork & dry-cured Fifeshire bacon.",
+    tags:['pork','bacon','beef','lamb'], web:'https://www.puddledub.co.uk', tel:'01592 612629' },
+  { id:'minicks',        name:'Minick the Butcher',                cat:'butcher',    town:'St Andrews',   lat:56.3399, lon:-2.7951,
+    desc:'Traditional St Andrews family butcher on Church Square. Local Scottish meat, sausages, pies.',
+    tags:['beef','lamb','sausages'], tel:'01334 472086' },
+
+  // ── Producers ─────────────────────────────────────────────────────
   { id:'st-andrews-cheese', name:'St Andrews Farmhouse Cheese Co.', cat:'producer', town:'Pittenweem',    lat:56.2129, lon:-2.7421,
     desc:'Family farm since the 1930s. Award-winning cheese from their own Friesian-Holstein herd.',
     tags:['cheese','dairy'], web:'https://standrewscheese.co.uk', tel:'01333 312580' },
   { id:'pittenweem-choc',name:'Pittenweem Chocolate Co.',          cat:'producer',   town:'Pittenweem',   lat:56.2125, lon:-2.7390,
     desc:'Hot chocolates and beautifully packaged handcrafted chocolates. UK & international stockists.',
-    tags:['chocolate'], web:'https://pittenweemchocolate.co.uk' },
+    tags:['chocolate'], web:'https://pittenweemchocolate.co.uk', tel:'01333 311495' },
   { id:'wee-fudge',      name:'The Wee Fudge Company',             cat:'producer',   town:'Pittenweem',   lat:56.2120, lon:-2.7405,
     desc:'Award-winning artisan luxury handcrafted fudge made to order.',
     tags:['fudge'] },
   { id:'little-herb',    name:'The Little Herb Farm',              cat:'producer',   town:'St Andrews',   lat:56.3380, lon:-2.7900,
     desc:'Small-batch hand-produced dips, hummus, fruit vinegars and whisky sauces.',
-    tags:['sauces','artisan'], tel:'01334 657222' },
+    tags:['sauces','artisan','dips'], tel:'01334 657222' },
+  { id:'east-neuk-orchards',name:'East Neuk Orchards',             cat:'producer',   town:'Pittenweem',   lat:56.2050, lon:-2.7800,
+    desc:'Hand-pressed apple juice in small batches. Each bottle traceable to the trees the apples came from.',
+    tags:['apple-juice','orchard'], web:'https://eastneukorchards.co.uk' },
+  { id:'scotland-bread', name:'Scotland the Bread',                cat:'producer',   town:'St Monans',    lat:56.2080, lon:-2.7615,
+    desc:"Heritage grain flour mill at Bowhouse, growing & milling Fife's own wheat varieties for bakers.",
+    tags:['flour','grain','heritage'], web:'https://scotlandthebread.org' },
 ];

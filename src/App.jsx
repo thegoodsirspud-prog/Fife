@@ -56,7 +56,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [theme, setTheme] = useState('dark');
 
-  const [activeCats, setActiveCats] = useState(() => new Set(CATEGORIES.map(c => c.id)));
+  const [soloCat, setSoloCat] = useState(null); // null = all, else a single cat id
   const [activeTown, setActiveTown] = useState('all');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
@@ -69,7 +69,7 @@ export default function App() {
   const filteredShops = useMemo(() => {
     const q = query.trim().toLowerCase();
     return FIFE_SHOPS
-      .filter(s => activeCats.has(s.cat))
+      .filter(s => soloCat == null || s.cat === soloCat)
       .filter(s => activeTown === 'all' || s.town === activeTown)
       .filter(s => !q || (
         s.name.toLowerCase().includes(q) ||
@@ -79,7 +79,7 @@ export default function App() {
       ))
       .map(s => ({ ...s, distance: userPos ? distKm(userPos, s) : null }))
       .sort((a, b) => a.distance != null && b.distance != null ? a.distance - b.distance : a.name.localeCompare(b.name));
-  }, [activeCats, activeTown, query, userPos]);
+  }, [soloCat, activeTown, query, userPos]);
 
   /* ── Build map layers ─────────────────────────────────────────────── */
   const buildLayers = useCallback((map, currentTheme) => {
@@ -230,19 +230,12 @@ export default function App() {
   }, [ready, userPos]);
 
   /* ── Helpers ──────────────────────────────────────────────────────── */
-  const toggleCat = (id) => {
-    setActiveCats(prev => {
-      const n = new Set(prev);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n.size === 0 ? new Set([id]) : n;
-    });
+  const handleCatClick = (id) => {
+    setSoloCat(prev => prev === id ? null : id);  // tap active chip → clear
   };
-  const allCatsOn = activeCats.size === CATEGORIES.length;
-  const toggleAllCats = () => {
-    setActiveCats(allCatsOn ? new Set([CATEGORIES[0].id]) : new Set(CATEGORIES.map(c => c.id)));
-  };
+  const showAll = () => setSoloCat(null);
   const resetFilters = () => {
-    setActiveCats(new Set(CATEGORIES.map(c => c.id)));
+    setSoloCat(null);
     setActiveTown('all');
     setQuery('');
   };
@@ -299,17 +292,27 @@ export default function App() {
 
         {/* Legend */}
         <div className="map-legend">
-          {CATEGORIES.map(c => (
-            <button
-              key={c.id}
-              className={`legend-chip ${activeCats.has(c.id) ? 'on' : ''}`}
-              onClick={() => toggleCat(c.id)}
-              style={{ '--c': c.color }}
-            >
-              <span className="legend-dot"></span>
-              <span className="legend-label">{c.label}</span>
-            </button>
-          ))}
+          <button
+            className={`legend-chip legend-all ${soloCat == null ? 'on' : ''}`}
+            onClick={showAll}
+          >
+            <span className="legend-label">All</span>
+          </button>
+          {CATEGORIES.map(c => {
+            const isOn = soloCat === c.id;
+            const dimmed = soloCat != null && !isOn;
+            return (
+              <button
+                key={c.id}
+                className={`legend-chip ${isOn ? 'on' : ''} ${dimmed ? 'dim' : ''}`}
+                onClick={() => handleCatClick(c.id)}
+                style={{ '--c': c.color }}
+              >
+                <span className="legend-dot"></span>
+                <span className="legend-label">{c.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Theme toggle */}
@@ -401,17 +404,26 @@ export default function App() {
         <div className="drawer-section">
           <div className="drawer-section-head">
             <span className="drawer-section-title">Categories</span>
-            <button className="drawer-link" onClick={toggleAllCats}>{allCatsOn ? 'Clear' : 'All'}</button>
+            {soloCat != null && <button className="drawer-link" onClick={showAll}>Show all</button>}
           </div>
           <div className="drawer-cats">
+            <button
+              className={`drawer-cat drawer-cat-all ${soloCat == null ? 'on' : ''}`}
+              onClick={showAll}
+            >
+              <span className="drawer-cat-dot drawer-cat-dot-all"></span>
+              <span className="drawer-cat-label">All categories</span>
+              <span className="drawer-cat-count">{FIFE_SHOPS.length}</span>
+            </button>
             {CATEGORIES.map(c => {
               const count = FIFE_SHOPS.filter(s => s.cat === c.id).length;
-              const on = activeCats.has(c.id);
+              const isOn = soloCat === c.id;
+              const dimmed = soloCat != null && !isOn;
               return (
                 <button
                   key={c.id}
-                  className={`drawer-cat ${on ? 'on' : ''}`}
-                  onClick={() => toggleCat(c.id)}
+                  className={`drawer-cat ${isOn ? 'on' : ''} ${dimmed ? 'dim' : ''}`}
+                  onClick={() => handleCatClick(c.id)}
                   style={{ '--c': c.color }}
                 >
                   <span className="drawer-cat-dot"></span>
