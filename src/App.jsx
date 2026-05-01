@@ -48,25 +48,6 @@ const I = {
   star:   <svg viewBox="0 0 20 20" width="12" height="12"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9z" fill="currentColor"/></svg>,
 };
 
-/* Rating row component */
-const RatingRow = ({ rating, source, color }) => {
-  if (!rating) return null;
-  const full = Math.round(rating);
-  return (
-    <div className="rating-row">
-      <span className="rating-source" style={{ color }}>{source}</span>
-      <span className="rating-stars">
-        {[1,2,3,4,5].map(i => (
-          <span key={i} className={`rating-star ${i <= full ? 'on' : ''}`}>
-            <svg viewBox="0 0 20 20" width="12" height="12"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9z" fill="currentColor"/></svg>
-          </span>
-        ))}
-      </span>
-      <span className="rating-num">{rating.toFixed(1)}</span>
-    </div>
-  );
-};
-
 /* ════════════════════════════════════════════════════════════════════════ */
 export default function App() {
   const cRef = useRef(null);
@@ -79,6 +60,7 @@ export default function App() {
   const [activeTown, setActiveTown] = useState('all');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
+  const [disambig, setDisambig] = useState(null); // Array of nearby shops when click is ambiguous
   const [view, setView] = useState('map'); // 'map' | 'list' (mobile)
   const [drawer, setDrawer] = useState(false);
   const [userPos, setUserPos] = useState(null);
@@ -151,16 +133,50 @@ export default function App() {
     });
 
     map.on('click','shop-hit', e => {
-      const f = e.features?.[0];
-      if (!f) return;
-      const s = FIFE_SHOPS.find(x => x.id === f.properties.id);
-      if (s) {
-        setSelected(s);
-        map.easeTo({ center:[s.lon,s.lat], zoom: Math.max(12, map.getZoom()), duration: 600 });
+      const tol = 28; // Larger hit tolerance for easier tapping
+      const bbox = [[e.point.x - tol, e.point.y - tol], [e.point.x + tol, e.point.y + tol]];
+      const hits = map.queryRenderedFeatures(bbox, { layers: ['shop-hit'] });
+      
+      if (!hits.length) {
+        setSelected(null);
+        setDisambig(null);
+        return;
+      }
+      
+      // Deduplicate shops in click area
+      const seen = new Set();
+      const shops = [];
+      for (const f of hits) {
+        const id = f.properties?.id;
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        const shop = FIFE_SHOPS.find(x => x.id === id);
+        if (shop) shops.push(shop);
+        if (shops.length >= 6) break; // Cap at 6
+      }
+      
+      if (shops.length === 1) {
+        // Single shop — show directly
+        map.easeTo({ center: [shops[0].lon, shops[0].lat], zoom: Math.max(12, map.getZoom()), duration: 600 });
+        setDisambig(null);
+        setSelected(shops[0]);
+      } else {
+        // Multiple shops — show disambiguation panel
+        setSelected(null);
+        setDisambig(shops);
       }
     });
     map.on('mouseenter','shop-hit', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave','shop-hit', () => { map.getCanvas().style.cursor = ''; });
+    
+    // Close panels on empty map click
+    map.on('click', e => {
+      const hits = map.queryRenderedFeatures(e.point, { layers: ['shop-hit'] });
+      if (!hits.length) {
+        setSelected(null);
+        setDisambig(null);
+      }
+    });
   }, []);
 
   /* ── Apply filter to map ──────────────────────────────────────────── */
@@ -335,6 +351,18 @@ export default function App() {
         {selected && (
           <div className="shop-popup" role="dialog">
             <div className="shop-popup-bar" style={{ background: CAT_BY_ID[selected.cat]?.color }}></div>
+            
+            {/* Google Place Photo if available */}
+            {selected.placeId && (
+              <div className="shop-popup-photo">
+                <img 
+                  src={`https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photo_reference=${selected.photoRef || 'placeholder'}&key=YOUR_API_KEY`}
+                  alt={selected.name}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+              </div>
+            )}
+            
             <div className="shop-popup-head">
               <div>
                 <div className="shop-popup-eyebrow" style={{ color: CAT_BY_ID[selected.cat]?.color }}>
@@ -345,12 +373,51 @@ export default function App() {
               <button className="shop-popup-close" onClick={() => setSelected(null)} aria-label="Close">{I.close}</button>
             </div>
             <p className="shop-popup-desc">{selected.desc}</p>
+            
+            {/* Clickable ratings */}
             {(selected.gr || selected.ta) && (
               <div className="shop-popup-ratings">
-                <RatingRow rating={selected.gr} source="Google" color="#4285F4" />
-                <RatingRow rating={selected.ta} source="TripAdvisor" color="#00aa6c" />
+                {selected.gr && (
+                  <a 
+                    href={selected.googleUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.name + ' ' + selected.town + ' Fife')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rating-row rating-row-link"
+                  >
+                    <span className="rating-source" style={{ color: '#4285F4' }}>Google</span>
+                    <span className="rating-stars">
+                      {[1,2,3,4,5].map(i => (
+                        <span key={i} className={`rating-star ${i <= Math.round(selected.gr) ? 'on' : ''}`}>
+                          <svg viewBox="0 0 20 20" width="12" height="12"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9z" fill="currentColor"/></svg>
+                        </span>
+                      ))}
+                    </span>
+                    <span className="rating-num">{selected.gr.toFixed(1)}</span>
+                    {I.ext}
+                  </a>
+                )}
+                {selected.ta && (
+                  <a 
+                    href={selected.taUrl || `https://www.tripadvisor.com/Search?q=${encodeURIComponent(selected.name + ' Fife')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rating-row rating-row-link"
+                  >
+                    <span className="rating-source" style={{ color: '#00aa6c' }}>TripAdvisor</span>
+                    <span className="rating-stars">
+                      {[1,2,3,4,5].map(i => (
+                        <span key={i} className={`rating-star ${i <= Math.round(selected.ta) ? 'on' : ''}`}>
+                          <svg viewBox="0 0 20 20" width="12" height="12"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9z" fill="currentColor"/></svg>
+                        </span>
+                      ))}
+                    </span>
+                    <span className="rating-num">{selected.ta.toFixed(1)}</span>
+                    {I.ext}
+                  </a>
+                )}
               </div>
             )}
+            
             {selected.tags && (
               <div className="shop-popup-tags">
                 {selected.tags.map(t => <span key={t} className="tag">{t}</span>)}
@@ -363,6 +430,44 @@ export default function App() {
               {selected.web && (
                 <a className="shop-popup-action" href={selected.web} target="_blank" rel="noopener noreferrer">{I.ext}<span>Visit website</span></a>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Disambiguation panel (MW4-style) */}
+        {disambig && (
+          <div className="disambig-panel" role="dialog">
+            <div className="disambig-head">
+              <div className="disambig-eyebrow">{disambig.length} places here</div>
+              <button className="disambig-close" onClick={() => setDisambig(null)} aria-label="Close">✕</button>
+            </div>
+            <div className="disambig-list">
+              {disambig.sort((a, b) => {
+                // Sort by user distance if available, else alphabetically
+                if (userPos && a.distance != null && b.distance != null) {
+                  return a.distance - b.distance;
+                }
+                return a.name.localeCompare(b.name);
+              }).map(shop => (
+                <button
+                  key={shop.id}
+                  className="disambig-item"
+                  onClick={() => {
+                    mapRef.current?.easeTo({ center: [shop.lon, shop.lat], zoom: 13, duration: 400 });
+                    setDisambig(null);
+                    setSelected(shop);
+                  }}
+                >
+                  <div className="disambig-item-dot" style={{ background: CAT_BY_ID[shop.cat]?.color }}></div>
+                  <div className="disambig-item-body">
+                    <div className="disambig-item-name">{shop.name}</div>
+                    <div className="disambig-item-meta">
+                      {CAT_BY_ID[shop.cat]?.label} · {shop.town}
+                      {shop.distance != null && ` · ${shop.distance.toFixed(1)}km`}
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         )}
