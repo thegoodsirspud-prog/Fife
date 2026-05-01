@@ -95,6 +95,8 @@ export default function App() {
     const labelColor = currentTheme === 'light' ? '#1e293b' : '#ffffff';
     const labelHalo  = currentTheme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(10,15,25,0.85)';
 
+    console.log('[DEBUG] Building layers with', SCOTLAND_SHOPS.length, 'shops');
+
     // Tear down
     ['shop-label','shop-hit','shop-selected','shop-dot','shop-halo'].forEach(id => { try { map.removeLayer(id); } catch {} });
     try { map.removeSource('shops'); } catch {}

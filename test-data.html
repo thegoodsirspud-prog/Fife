@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Scotland Food - Data Test</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Scotland Food - Data Validation</h1>
+  <div id="results"></div>
+  
+  <script type="module">
+    const results = document.getElementById('results');
+    
+    try {
+      // Import the data
+      const { SCOTLAND_SHOPS, CATEGORIES, SCOTTISH_COUNCILS } = await import('./src/data/fifeShops.js');
+      
+      results.innerHTML += `<p class="success">✅ Data imported successfully</p>`;
+      results.innerHTML += `<p>📊 <strong>${SCOTLAND_SHOPS.length} shops</strong> loaded</p>`;
+      results.innerHTML += `<p>📍 <strong>${SCOTTISH_COUNCILS.length} councils</strong> defined</p>`;
+      results.innerHTML += `<p>🏷️ <strong>${CATEGORIES.length} categories</strong> defined</p>`;
+      
+      // Count by council
+      const byCouncil = {};
+      SCOTLAND_SHOPS.forEach(s => {
+        byCouncil[s.council] = (byCouncil[s.council] || 0) + 1;
+      });
+      
+      results.innerHTML += `<h2>Breakdown by Council:</h2><ul>`;
+      Object.entries(byCouncil).sort((a,b) => b[1] - a[1]).forEach(([council, count]) => {
+        results.innerHTML += `<li><strong>${council}</strong>: ${count} shops</li>`;
+      });
+      results.innerHTML += `</ul>`;
+      
+      // Show first 3 shops
+      results.innerHTML += `<h2>Sample Shops:</h2>`;
+      SCOTLAND_SHOPS.slice(0, 3).forEach(shop => {
+        results.innerHTML += `
+          <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;">
+            <strong>${shop.name}</strong> (${shop.town})<br>
+            Category: ${shop.cat} | Council: ${shop.council}<br>
+            Coordinates: ${shop.lat}, ${shop.lon}
+          </div>
+        `;
+      });
+      
+    } catch (error) {
+      results.innerHTML += `<p class="error">❌ Error: ${error.message}</p>`;
+      results.innerHTML += `<pre>${error.stack}</pre>`;
+    }
+  </script>
+</body>
+</html>
