@@ -97,9 +97,11 @@ export default function App() {
 
     console.log('[DEBUG] Building layers with', SCOTLAND_SHOPS.length, 'shops');
 
-    // Tear down
-    ['shop-label','shop-hit','shop-selected','shop-dot','shop-halo'].forEach(id => { try { map.removeLayer(id); } catch {} });
-    try { map.removeSource('shops'); } catch {}
+    // Tear down existing layers (only if they exist)
+    ['shop-label','shop-hit','shop-selected','shop-dot','shop-halo'].forEach(id => { 
+      if (map.getLayer(id)) map.removeLayer(id);
+    });
+    if (map.getSource('shops')) map.removeSource('shops');
 
     map.addSource('shops', { type:'geojson', data: buildGeo(SCOTLAND_SHOPS) });
 
