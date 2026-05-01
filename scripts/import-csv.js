@@ -11,8 +11,12 @@
  *   node scripts/import-csv.js scotland-producers-scraped.csv scotland-producers-manual.csv
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const VALID_CATEGORIES = [
   'farm', 'cafe', 'bakery', 'seafood', 'deli', 'butcher', 'distillery', 
@@ -95,10 +99,13 @@ function shopToJS(shop) {
   const gr = shop.google_rating ? parseFloat(shop.google_rating) : null;
   const ta = shop.tripadvisor_rating ? parseFloat(shop.tripadvisor_rating) : null;
   
-  let js = `  { id:'${shop.id}', name:'${shop.name}', `;
-  js += `cat:'${shop.category}', council:'${shop.council}', town:'${shop.town}', `;
+  // Escape single quotes in all string fields
+  const escapeSQ = (str) => str.replace(/'/g, "\\'");
+  
+  let js = `  { id:'${shop.id}', name:'${escapeSQ(shop.name)}', `;
+  js += `cat:'${shop.category}', council:'${shop.council}', town:'${escapeSQ(shop.town)}', `;
   js += `lat:${parseFloat(shop.latitude).toFixed(4)}, lon:${parseFloat(shop.longitude).toFixed(4)},\n`;
-  js += `    desc:'${shop.description.replace(/'/g, "\\'")}',\n`;
+  js += `    desc:'${escapeSQ(shop.description)}',\n`;
   if (tags) js += `    tags:[${tags}],`;
   if (shop.website) js += ` web:'${shop.website}',`;
   if (shop.phone) js += ` tel:'${shop.phone}',`;
