@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
-import { FIFE_SHOPS, CATEGORIES, TOWNS } from './data/fifeShops.js';
+import Supercluster from 'supercluster';
+import { SCOTLAND_SHOPS, CATEGORIES, SCOTTISH_COUNCILS, TOWNS } from './data/fifeShops.js';
 
 /* ════════════════════════════════════════════════════════════════════════
-   Fife Food — map-first discovery, MW4-quality polish.
+   Scotland Food — map-first discovery, MW4-quality polish, Scotland-scale.
    ════════════════════════════════════════════════════════════════════════ */
 
 const STYLES = {
@@ -11,7 +12,12 @@ const STYLES = {
   light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
 };
 
+// Scotland center and bounds
+const SCOTLAND_CENTER = [-4.2, 56.8];
+const SCOTLAND_ZOOM = 6.5;
+
 const CAT_BY_ID = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+const COUNCIL_BY_ID = Object.fromEntries(SCOTTISH_COUNCILS.map(c => [c.id, c]));
 
 // GeoJSON for all shops, filtered later via map filter
 const buildGeo = (shops) => ({
@@ -20,7 +26,7 @@ const buildGeo = (shops) => ({
     type: 'Feature',
     geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
     properties: {
-      id: s.id, name: s.name, cat: s.cat, town: s.town,
+      id: s.id, name: s.name, cat: s.cat, town: s.town, council: s.council,
       color: CAT_BY_ID[s.cat]?.color || '#888',
     },
   })),
@@ -57,6 +63,7 @@ export default function App() {
   const [theme, setTheme] = useState('dark');
 
   const [soloCat, setSoloCat] = useState(null); // null = all, else a single cat id
+  const [activeCouncil, setActiveCouncil] = useState('all'); // 'all' or council id
   const [activeTown, setActiveTown] = useState('all');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
@@ -69,8 +76,9 @@ export default function App() {
   /* ── Filtered shops ───────────────────────────────────────────────── */
   const filteredShops = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return FIFE_SHOPS
+    return SCOTLAND_SHOPS
       .filter(s => soloCat == null || s.cat === soloCat)
+      .filter(s => activeCouncil === 'all' || s.council === activeCouncil)
       .filter(s => activeTown === 'all' || s.town === activeTown)
       .filter(s => !q || (
         s.name.toLowerCase().includes(q) ||
@@ -80,7 +88,7 @@ export default function App() {
       ))
       .map(s => ({ ...s, distance: userPos ? distKm(userPos, s) : null }))
       .sort((a, b) => a.distance != null && b.distance != null ? a.distance - b.distance : a.name.localeCompare(b.name));
-  }, [soloCat, activeTown, query, userPos]);
+  }, [soloCat, activeCouncil, activeTown, query, userPos]);
 
   /* ── Build map layers ─────────────────────────────────────────────── */
   const buildLayers = useCallback((map, currentTheme) => {
@@ -91,7 +99,7 @@ export default function App() {
     ['shop-label','shop-hit','shop-selected','shop-dot','shop-halo'].forEach(id => { try { map.removeLayer(id); } catch {} });
     try { map.removeSource('shops'); } catch {}
 
-    map.addSource('shops', { type:'geojson', data: buildGeo(FIFE_SHOPS) });
+    map.addSource('shops', { type:'geojson', data: buildGeo(SCOTLAND_SHOPS) });
 
     map.addLayer({ id:'shop-halo', type:'circle', source:'shops', paint:{
       'circle-radius': ['interpolate',['linear'],['zoom'], 8, 8, 11, 14, 14, 22],
@@ -150,7 +158,7 @@ export default function App() {
         const id = f.properties?.id;
         if (!id || seen.has(id)) continue;
         seen.add(id);
-        const shop = FIFE_SHOPS.find(x => x.id === id);
+        const shop = SCOTLAND_SHOPS.find(x => x.id === id);
         if (shop) shops.push(shop);
         if (shops.length >= 6) break; // Cap at 6
       }
@@ -205,9 +213,9 @@ export default function App() {
     const map = new maplibregl.Map({
       container: cRef.current,
       style: STYLES.dark,
-      center: [-2.95, 56.25],
-      zoom: 9.2,
-      minZoom: 7,
+      center: SCOTLAND_CENTER,
+      zoom: SCOTLAND_ZOOM,
+      minZoom: 5,
       maxZoom: 16,
       attributionControl: { compact: true },
       pitchWithRotate: false,
@@ -271,6 +279,7 @@ export default function App() {
   const showAll = () => setSoloCat(null);
   const resetFilters = () => {
     setSoloCat(null);
+    setActiveCouncil('all');
     setActiveTown('all');
     setQuery('');
   };
@@ -290,7 +299,7 @@ export default function App() {
           {I.menu}
         </button>
         <div className="topbar-title">
-          <span>FIFE</span>
+          <span>SCOTLAND</span>
           <span className="topbar-title-accent">FOOD</span>
         </div>
         <button className={`topbar-btn ${userPos ? 'on' : ''}`} onClick={requestLoc} aria-label="Find me">
@@ -309,13 +318,14 @@ export default function App() {
             <input
               type="text" value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder={`Search ${FIFE_SHOPS.length} producers, towns…`}
+              placeholder={`Search ${SCOTLAND_SHOPS.length} producers across Scotland…`}
             />
             {query && <button className="map-search-clear" onClick={() => setQuery('')} aria-label="Clear">{I.close}</button>}
           </div>
           <div className="map-search-meta">
             <span className="meta-count">{filteredShops.length}</span>
             <span className="meta-label">{filteredShops.length === 1 ? 'place' : 'places'}</span>
+            {activeCouncil !== 'all' && <span className="meta-pill">{COUNCIL_BY_ID[activeCouncil]?.name}</span>}
             {activeTown !== 'all' && <span className="meta-pill">{activeTown}</span>}
           </div>
         </div>
@@ -530,6 +540,29 @@ export default function App() {
           <button className="drawer-close" onClick={() => setDrawer(false)} aria-label="Close">{I.close}</button>
         </div>
 
+        {/* Council selector (Scotland-wide) */}
+        <div className="drawer-section">
+          <div className="drawer-section-head">
+            <span className="drawer-section-title">Council</span>
+            {activeCouncil !== 'all' && <button className="drawer-link" onClick={() => setActiveCouncil('all')}>Show all</button>}
+          </div>
+          <select
+            className="drawer-select"
+            value={activeCouncil}
+            onChange={(e) => {
+              setActiveCouncil(e.target.value);
+              setActiveTown('all'); // Reset town when switching councils
+            }}
+          >
+            <option value="all">All Scotland ({SCOTLAND_SHOPS.length})</option>
+            {SCOTTISH_COUNCILS.map(c => {
+              const count = SCOTLAND_SHOPS.filter(s => s.council === c.id).length;
+              if (!count) return null;
+              return <option key={c.id} value={c.id}>{c.name} ({count})</option>;
+            })}
+          </select>
+        </div>
+
         <div className="drawer-section">
           <div className="drawer-section-head">
             <span className="drawer-section-title">Categories</span>
@@ -542,10 +575,11 @@ export default function App() {
             >
               <span className="drawer-cat-dot drawer-cat-dot-all"></span>
               <span className="drawer-cat-label">All categories</span>
-              <span className="drawer-cat-count">{FIFE_SHOPS.length}</span>
+              <span className="drawer-cat-count">{SCOTLAND_SHOPS.length}</span>
             </button>
             {CATEGORIES.map(c => {
-              const count = FIFE_SHOPS.filter(s => s.cat === c.id).length;
+              const count = SCOTLAND_SHOPS.filter(s => s.cat === c.id).length;
+              if (!count) return null; // Hide categories with 0 shops
               const isOn = soloCat === c.id;
               const dimmed = soloCat != null && !isOn;
               return (
@@ -573,9 +607,14 @@ export default function App() {
             <button
               className={`drawer-town ${activeTown === 'all' ? 'on' : ''}`}
               onClick={() => setActiveTown('all')}
-            >All Fife</button>
-            {TOWNS.map(t => {
-              const count = FIFE_SHOPS.filter(s => s.town === t).length;
+            >{activeCouncil === 'all' ? 'All towns' : `All ${COUNCIL_BY_ID[activeCouncil]?.name || 'towns'}`}</button>
+            {/* Only show towns from active council */}
+            {(activeCouncil === 'all' ? TOWNS : 
+              [...new Set(SCOTLAND_SHOPS.filter(s => s.council === activeCouncil).map(s => s.town))].sort()
+            ).map(t => {
+              const count = SCOTLAND_SHOPS.filter(s => 
+                s.town === t && (activeCouncil === 'all' || s.council === activeCouncil)
+              ).length;
               if (!count) return null;
               return (
                 <button
@@ -598,8 +637,8 @@ export default function App() {
         </div>
 
         <div className="drawer-foot">
-          <div className="drawer-foot-title">Fife Food</div>
-          <div className="drawer-foot-sub">{FIFE_SHOPS.length} independent producers across the Kingdom of Fife. No chains, no supermarkets.</div>
+          <div className="drawer-foot-title">Scotland Food</div>
+          <div className="drawer-foot-sub">{SCOTLAND_SHOPS.length} independent producers across Scotland. Showcasing the best local food our nation has to offer.</div>
         </div>
       </aside>
     </div>

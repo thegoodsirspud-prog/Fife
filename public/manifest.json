@@ -1,22 +1,22 @@
 {
-  "name": "Fife Food App - Local Producers",
-  "short_name": "Fife Food",
-  "description": "Discover local food producers, artisan shops, and farmers markets across the Kingdom of Fife",
+  "name": "Scotland Food — Local Producers",
+  "short_name": "Scotland Food",
+  "description": "Discover Scotland's best independent food producers, artisan shops, and local makers across all 32 councils",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#FFFAF0",
-  "theme_color": "#2D5016",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%232D5016' width='192' height='192'/><text x='96' y='120' font-size='100' fill='white' text-anchor='middle' font-weight='bold'>🌾</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%232D5016' width='192' height='192'/><text x='96' y='120' font-size='100' fill='white' text-anchor='middle' font-weight='bold'>🏴󠁧󠁢󠁳󠁣󠁴󠁿</text></svg>",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%232D5016' width='512' height='512'/><text x='256' y='340' font-size='280' fill='white' text-anchor='middle' font-weight='bold'>🌾</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%232D5016' width='512' height='512'/><text x='256' y='340' font-size='280' fill='white' text-anchor='middle' font-weight='bold'>🏴󠁧󠁢󠁳󠁣󠁴󠁿</text></svg>",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
@@ -25,7 +25,7 @@
   "categories": ["food", "shopping", "lifestyle"],
   "screenshots": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%23F5F1ED' width='540' height='720'/><rect fill='%232D5016' width='540' height='140'/><text x='270' y='90' font-size='36' fill='white' text-anchor='middle' font-weight='bold'>Fife Food App</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230f172a' width='540' height='720'/><rect fill='%2338bdf8' width='540' height='140'/><text x='270' y='90' font-size='36' fill='white' text-anchor='middle' font-weight='bold'>Scotland Food</text></svg>",
       "sizes": "540x720",
       "type": "image/svg+xml",
       "form_factor": "narrow"
@@ -33,13 +33,13 @@
   ],
   "shortcuts": [
     {
-      "name": "View All Shops",
-      "short_name": "All Shops",
-      "description": "Browse all local food producers in Fife",
+      "name": "View All Producers",
+      "short_name": "All",
+      "description": "Browse all local food producers in Scotland",
       "url": "/?category=All",
       "icons": [
         {
-          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23D4A574' width='96' height='96'/><text x='48' y='70' font-size='50' text-anchor='middle'>🏪</text></svg>",
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%2338bdf8' width='96' height='96'/><text x='48' y='70' font-size='50' text-anchor='middle'>🏪</text></svg>",
           "sizes": "96x96",
           "type": "image/svg+xml"
         }
@@ -48,11 +48,11 @@
     {
       "name": "Find Distilleries",
       "short_name": "Distilleries",
-      "description": "Discover gin and whisky distilleries",
+      "description": "Discover Scottish distilleries",
       "url": "/?category=Distillery",
       "icons": [
         {
-          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%235D4E37' width='96' height='96'/><text x='48' y='70' font-size='50' text-anchor='middle'>🥃</text></svg>",
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23a16207' width='96' height='96'/><text x='48' y='70' font-size='50' text-anchor='middle'>🥃</text></svg>",
           "sizes": "96x96",
           "type": "image/svg+xml"
         }
