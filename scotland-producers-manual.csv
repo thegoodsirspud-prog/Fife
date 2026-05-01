@@ -1,0 +1,30 @@
+id,name,category,council,town,latitude,longitude,description,tags,website,phone,google_rating,tripadvisor_rating
+# EDINBURGH FLAGSHIP ENTRIES (manually curated)
+# Example entries - replace with your curated picks:
+valvona-crolla,Valvona & Crolla,deli,edinburgh,Edinburgh,55.9595,-3.1814,"Edinburgh's oldest delicatessen since 1934. Italian imports, Scottish produce, café.","italian,deli,cafe",https://www.valvonacrolla.co.uk,01315566066,4.6,4.5
+# Add your Edinburgh flagships here...
+
+# GLASGOW FLAGSHIP ENTRIES
+# Add your Glasgow flagships here...
+
+# HIGHLAND FLAGSHIP ENTRIES
+# Add your Highland flagships here...
+
+# PERTH & KINROSS FLAGSHIP ENTRIES
+# Add your Perth & Kinross flagships here...
+
+# ABERDEENSHIRE FLAGSHIP ENTRIES
+# Add your Aberdeenshire flagships here...
+
+# BORDERS FLAGSHIP ENTRIES
+# Add your Borders flagships here...
+
+# === INSTRUCTIONS ===
+# 1. Lines starting with # are comments (ignored)
+# 2. id: unique slug (lowercase-with-hyphens)
+# 3. category: MUST be one of: farm, cafe, bakery, seafood, deli, butcher, distillery, brewery, market, cheese, chocolate, dairy, honey, vineyard, smokehouse, fruit, veg, eggs, mill, ice-cream
+# 4. council: MUST be one of: edinburgh, glasgow, highland, perth-kinross, aberdeenshire, fife, dundee, stirling, argyll-bute, etc.
+# 5. tags: semicolon-separated (e.g., "organic;vegan;cafe")
+# 6. google_rating: 0-5 (use decimals: 4.5)
+# 7. tripadvisor_rating: 0-5 or leave blank
+# 8. Get coordinates from Google Maps: right-click location → "What's here?" → copy lat,lon
